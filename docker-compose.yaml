@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  tacsrtdb:
+    container_name: tacsrt_container
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=beowulf
+      - POSTGRES_PASSWORD=123qwe
+      - POSTGRES_DB=tacsrtDev_db
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U beowulf -d tacsrtDev_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - user-data:/var/lib/postgresql/data/
+    networks:
+      - beowulf_network
+
+  backend:
+    container_name: tacsrt_backend
+    build: Backend/
+    ports:
+      - 8080:8080
+    networks:
+      - beowulf_network
+    depends_on:
+      tacsrtdb:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+    volumes:
+      - type: bind
+        source: ./Backend
+        target: /src/app
+    
+
+networks:
+  beowulf_network:
+    driver: bridge
+
+volumes:
+  user-data:
